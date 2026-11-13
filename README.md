@@ -70,11 +70,15 @@ Blank when nothing is active. Otherwise something like `Magnum Opus guard ON | 5
 
 ## Usage guard
 
-| Five-hour usage | What happens |
-|---|---|
-| 90% | No new workers (Fable commands); running workers are told to wrap up and report. Magnum only warns. |
-| 92% | The lead writes a short handoff, saved to `~/.claude/fable-handoffs/`. |
-| 95% | A Fable command is refused at the start, and a running Fable worker is stopped with an automatic handoff (git status, diff summary, transcript path). Magnum warns but does not stop. |
+`/fable-orchestrator` and `/magnum-opus` only ever **warn**; they never refuse or stop work. `/fable-peer` enforces the limits.
+
+| Five-hour usage | `/fable-orchestrator`, `/magnum-opus` | `/fable-peer` |
+|---|---|---|
+| 90% | Running workers get a one-time warning and carry on. | No new workers; running workers are told to wrap up and report. |
+| 92% | The lead writes a short handoff, saved to `~/.claude/fable-handoffs/`. | Same. |
+| 95% | Still just a warning. | The command is refused at the start, and a running worker is stopped with an automatic handoff (git status, diff summary, transcript path). |
+
+To make a command enforce or warn, change its `UsagePolicy` in `~/.claude/hooks/orchestrator/profiles.psd1` (`'warn'`, or remove the line to enforce).
 
 After the reset, open the handoff file and carry on.
 
@@ -87,7 +91,7 @@ After the reset, open the handoff file and carry on.
 
 ## Checking it works
 
-While workers run, `/tasks` shows each one and its model. The offline test suite (`~/.claude/hooks/orchestrator/tests/run-tests.ps1`) replays about 88 synthetic hook events with no model calls.
+While workers run, `/tasks` shows each one and its model. The offline test suite (`~/.claude/hooks/orchestrator/tests/run-tests.ps1`) replays about 110 synthetic hook events with no model calls.
 
 ## Removing it
 

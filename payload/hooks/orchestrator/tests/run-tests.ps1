@@ -160,7 +160,7 @@ $r = Invoke-Hook $GuardPath @{ hook_event_name = 'PreToolUse'; tool_name = 'Agen
 Assert ($r.ExitCode -eq 2) 'missing session_id exits 2 (blocks)' $r
 
 # ---------------------------------------------------------------- legacy usage guard
-Write-Host "`n[9] Usage guard: activation and thresholds"
+Write-Host "`n[9] Usage guard: enforced thresholds (fable-peer)"
 $U = New-StateRoot
 # The legacy usage guard has no -HandoffRoot parameter: it writes to the real handoff directory,
 # so legacy mode uses that directory and removes only the files this run created (by session key).
@@ -168,25 +168,25 @@ $keyU = (Get-Key 'sess-U').Substring(0, 12)
 if ($LegacyOnly) { $H = Join-Path ([Environment]::GetFolderPath('UserProfile')) '.claude\fable-handoffs'; $HArgs = @() }
 else { $H = Join-Path $U 'handoffs'; $HArgs = @('-HandoffRoot', $H) }
 Save-Quota $U 96
-$r = Invoke-Hook $UsageGuardPath (Expansion 'sess-U' 'p1' 'fable-orchestrator') $U @{} $HArgs
+$r = Invoke-Hook $UsageGuardPath (Expansion 'sess-U' 'p1' 'fable-peer') $U @{} $HArgs
 Assert ($r.Json.decision -eq 'block') 'command refused at >=95%' $r
 Save-Quota $U 96 -AgeMinutes 30
-$r = Invoke-Hook $UsageGuardPath (Expansion 'sess-U' 'p1' 'fable-orchestrator') $U @{} $HArgs
+$r = Invoke-Hook $UsageGuardPath (Expansion 'sess-U' 'p1' 'fable-peer') $U @{} $HArgs
 Assert ($r.Json.hookSpecificOutput.additionalContext -match 'usage guard') 'stale snapshot does not refuse Fable' $r
 Save-Quota $U 50
-$r = Invoke-Hook $UsageGuardPath (Expansion 'sess-U' 'p2' 'fable-orchestrator') $U @{} $HArgs
+$r = Invoke-Hook $UsageGuardPath (Expansion 'sess-U' 'p2' 'fable-peer') $U @{} $HArgs
 Assert ($r.Json.hookSpecificOutput.additionalContext -match '50%') 'activation reports current usage' $r
 Assert ((Get-ChildItem -Path $U -Recurse -Filter 'quota-guard.json').Count -eq 1) 'active marker written'
-$r = Invoke-Hook $UsageGuardPath (Dispatch 'sess-U' 'p2' 'fable-opus-worker') $U @{} $HArgs
+$r = Invoke-Hook $UsageGuardPath (Dispatch 'sess-U' 'p2' 'fable-peer-opus-worker') $U @{} $HArgs
 Assert (Silent $r) 'dispatch allowed below 90%' $r
 Save-Quota $U 91
-$r = Invoke-Hook $UsageGuardPath (Dispatch 'sess-U' 'p2' 'fable-opus-worker') $U @{} $HArgs
+$r = Invoke-Hook $UsageGuardPath (Dispatch 'sess-U' 'p2' 'fable-peer-opus-worker') $U @{} $HArgs
 Assert (Is-Deny $r) 'dispatch denied at >=90%' $r
 $r = Invoke-Hook $UsageGuardPath (Dispatch 'sess-U' 'p2' 'Explore') $U @{} $HArgs
 Assert (Silent $r) 'non-worker dispatch untouched by usage guard' $r
-$r = Invoke-Hook $UsageGuardPath (Ev 'PostToolBatch' 'sess-U' 'p2' @{ agent_type = 'fable-opus-worker' }) $U @{} $HArgs
+$r = Invoke-Hook $UsageGuardPath (Ev 'PostToolBatch' 'sess-U' 'p2' @{ agent_type = 'fable-peer-opus-worker' }) $U @{} $HArgs
 Assert ($r.Json.hookSpecificOutput.additionalContext -match 'wind-down') 'worker told to wind down at >=90%' $r
-$r = Invoke-Hook $UsageGuardPath (Ev 'PostToolBatch' 'sess-U' 'p2' @{ agent_type = 'fable-opus-worker' }) $U @{} $HArgs
+$r = Invoke-Hook $UsageGuardPath (Ev 'PostToolBatch' 'sess-U' 'p2' @{ agent_type = 'fable-peer-opus-worker' }) $U @{} $HArgs
 Assert (Silent $r) 'wind-down requested only once' $r
 Save-Quota $U 93
 $r = Invoke-Hook $UsageGuardPath (Ev 'PostToolUse' 'sess-U' 'p2' @{ tool_name = 'Agent'; tool_input = @{}; tool_response = @{} }) $U @{} $HArgs
@@ -196,11 +196,11 @@ $handoffs = @(Get-ChildItem -Path $H -Filter ('*-' + $keyU + '.md') -ErrorAction
 Assert ($handoffs.Count -eq 1 -and (Get-Content $handoffs[0].FullName -Raw) -match 'handoff body') 'model-authored handoff saved at Stop' $r
 Assert ((Get-ChildItem -Path $U -Recurse -Filter 'quota-guard.json').Count -eq 0) 'active marker cleared at main Stop'
 Save-Quota $U 96
-$r = Invoke-Hook $UsageGuardPath (Expansion 'sess-U' 'p3' 'fable-orchestrator') $U @{} $HArgs
+$r = Invoke-Hook $UsageGuardPath (Expansion 'sess-U' 'p3' 'fable-peer') $U @{} $HArgs
 Save-Quota $U 50
-$r = Invoke-Hook $UsageGuardPath (Expansion 'sess-U' 'p3' 'fable-orchestrator') $U @{} $HArgs
+$r = Invoke-Hook $UsageGuardPath (Expansion 'sess-U' 'p3' 'fable-peer') $U @{} $HArgs
 Save-Quota $U 96
-$r = Invoke-Hook $UsageGuardPath (Ev 'PostToolBatch' 'sess-U' 'p3' @{ agent_type = 'fable-sonnet-helper' }) $U @{} $HArgs
+$r = Invoke-Hook $UsageGuardPath (Ev 'PostToolBatch' 'sess-U' 'p3' @{ agent_type = 'fable-peer-opus-worker' }) $U @{} $HArgs
 Assert ($r.Json.decision -eq 'block' -and $r.Json.reason -match 'fallback handoff') 'worker stopped with fallback handoff at >=95%' $r
 Assert (@(Get-ChildItem -Path $H -Filter ('*-' + $keyU + '.md')).Count -eq 2) 'fallback handoff file written'
 if ($LegacyOnly) { Get-ChildItem -Path $H -Filter ('*-' + $keyU + '.md') -ErrorAction SilentlyContinue | Remove-Item -Force }
@@ -210,6 +210,23 @@ if ($LegacyOnly) {
     if ($script:failed) { $script:failures | ForEach-Object { Write-Host (' - ' + $_) -ForegroundColor Red }; exit 1 }
     exit 0
 }
+
+# ---------------------------------------------------------------- Fable orchestrator is warning-only
+Write-Host "`n[9b] /fable-orchestrator usage guard warns but never blocks"
+$W = New-StateRoot
+$HW = Join-Path $W 'handoffs'
+Save-Quota $W 96
+$r = Invoke-Hook $UsageGuardPath (Expansion 'sess-W' 'p1' 'fable-orchestrator') $W @{} @('-HandoffRoot', $HW)
+Assert (-not $r.Json.decision -and $r.Json.hookSpecificOutput.additionalContext -match 'warning-only') 'fable command not refused at >=95%' $r
+$r = Invoke-Hook $UsageGuardPath (Dispatch 'sess-W' 'p1' 'fable-opus-worker') $W @{} @('-HandoffRoot', $HW)
+Assert (Silent $r) 'fable worker dispatch allowed at >=95%' $r
+$r = Invoke-Hook $UsageGuardPath (Ev 'PostToolBatch' 'sess-W' 'p1' @{ agent_type = 'fable-sonnet-helper' }) $W @{} @('-HandoffRoot', $HW)
+Assert (-not $r.Json.decision -and $r.Json.hookSpecificOutput.additionalContext -match 'Quota warning') 'fable worker warned, not stopped, at >=95%' $r
+$r = Invoke-Hook $UsageGuardPath (Ev 'PostToolBatch' 'sess-W' 'p1' @{ agent_type = 'fable-opus-worker' }) $W @{} @('-HandoffRoot', $HW)
+Assert (Silent $r) 'fable quota warning given only once' $r
+Save-Quota $W 93
+$r = Invoke-Hook $UsageGuardPath (Ev 'PostToolUse' 'sess-W' 'p1' @{ tool_name = 'Agent'; tool_input = @{}; tool_response = @{} }) $W @{} @('-HandoffRoot', $HW)
+Assert ($r.Json.hookSpecificOutput.additionalContext -match 'HANDOFF_START') 'fable head still asked for a handoff at >=92%' $r
 
 # ---------------------------------------------------------------- Fable Peer
 Write-Host "`n[10] /fable-peer one-shot peer-workstream authorization and pinning"

@@ -16,7 +16,7 @@ The package was built and tested on **Windows** with Windows PowerShell 5.1. The
 How the pieces fit:
 
 - **`guard.ps1`** is the routing guard. It authorizes a profile's workers only for a user-typed command (or while the Magnum toggle is on), pins each worker to its model, and enforces the tier hierarchy (a caller may only dispatch to a deeper tier). It is the security-relevant part: on malformed input or a state failure it exits 2, which blocks.
-- **`usage-guard.ps1`** watches the five-hour plan allowance. It reads quota snapshots and winds down, hands off or stops workers at 90/92/95%. It must never break a session: on any internal error it exits 0.
+- **`usage-guard.ps1`** watches the five-hour plan allowance. It reads quota snapshots and winds down, hands off or stops workers at 90/92/95%. Each profile's `UsagePolicy` in `profiles.psd1` decides how: `'warn'` (`/fable-orchestrator`, `/magnum-opus`) only warns and asks for a handoff; no `UsagePolicy` (`/fable-peer`) enforces. It must never break a session: on any internal error it exits 0.
 - **`usage-statusline.ps1`** is the status line. Besides showing guard state, it is the only thing that records the `rate_limits` payload into `state/quota/latest.json`, so the usage guard is blind without it.
 - **`common.ps1`** holds shared helpers; **`profiles.psd1`** declares each workflow's workers, models and tiers; **`policies/magnum-opus.md`** is injected on ordinary prompts while the Magnum toggle is on.
 - State is written under `hooks/orchestrator/state/` (created on first use). Handoff files go to `~/.claude/fable-handoffs/`.
@@ -67,7 +67,7 @@ Merge `settings-fragment.json` into `~/.claude/settings.json`, replacing `{{RUN}
 
 ## Step 6 — Run the offline test suite
 
-Run `tests/run-tests.ps1` with the runner (`pwsh -NoProfile -File ~/.claude/hooks/orchestrator/tests/run-tests.ps1` on Route A). It replays about 88 synthetic hook events through the guards with temporary state folders and makes no model calls. **Every test must pass.** If one fails, fix the cause in the installed scripts (usually a path or process-launch difference from step 3) and rerun. Do not edit a test to make it pass unless the test itself has a Windows-only assumption, and say so if you do.
+Run `tests/run-tests.ps1` with the runner (`pwsh -NoProfile -File ~/.claude/hooks/orchestrator/tests/run-tests.ps1` on Route A). It replays about 110 synthetic hook events through the guards with temporary state folders and makes no model calls. **Every test must pass.** If one fails, fix the cause in the installed scripts (usually a path or process-launch difference from step 3) and rerun. Do not edit a test to make it pass unless the test itself has a Windows-only assumption, and say so if you do.
 
 ## Step 7 — Live smoke test (ask first)
 

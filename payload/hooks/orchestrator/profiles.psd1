@@ -11,6 +11,7 @@
         Label     = 'Fable'
         Toggle    = $false
         HeadModel = 'fable'
+        UsagePolicy = 'warn'
         Workers   = @{
             'fable-opus-worker'   = @{ Model = 'opus';   Tier = 1 }
             'fable-sonnet-helper' = @{ Model = 'sonnet'; Tier = 2 }
