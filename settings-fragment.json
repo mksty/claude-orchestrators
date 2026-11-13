@@ -1,0 +1,78 @@
+{
+  "_comment": "Reference only. INSTALL.md explains how to merge this into ~/.claude/settings.json. {{RUN}} is the command that runs one guard script on this machine (Windows: powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File; macOS/Linux with PowerShell 7: pwsh -NoProfile -NonInteractive -File). {{HOOKS}} is the absolute path of the installed hooks/orchestrator folder, with forward slashes. If the scripts are ported to another language, replace {{RUN}} and the .ps1 names accordingly.",
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "{{RUN}} \"{{HOOKS}}/usage-statusline.ps1\"",
+    "padding": 1,
+    "refreshInterval": 60
+  },
+  "hooks": {
+    "UserPromptExpansion": [
+      {
+        "matcher": "^(fable-orchestrator|fable-peer|magnum-opus)$",
+        "hooks": [
+          { "type": "command", "command": "{{RUN}} \"{{HOOKS}}/guard.ps1\"", "timeout": 10 },
+          { "type": "command", "command": "{{RUN}} \"{{HOOKS}}/usage-guard.ps1\"", "timeout": 10 }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "command", "command": "{{RUN}} \"{{HOOKS}}/guard.ps1\"", "timeout": 10 },
+          { "type": "command", "command": "{{RUN}} \"{{HOOKS}}/usage-guard.ps1\"", "timeout": 10 }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "^(Agent|Task)$",
+        "hooks": [
+          { "type": "command", "command": "{{RUN}} \"{{HOOKS}}/guard.ps1\"", "timeout": 10 },
+          { "type": "command", "command": "{{RUN}} \"{{HOOKS}}/usage-guard.ps1\"", "timeout": 10 }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^Agent$",
+        "hooks": [
+          { "type": "command", "command": "{{RUN}} \"{{HOOKS}}/usage-guard.ps1\"", "timeout": 10 }
+        ]
+      }
+    ],
+    "PostToolBatch": [
+      {
+        "hooks": [
+          { "type": "command", "command": "{{RUN}} \"{{HOOKS}}/usage-guard.ps1\"", "timeout": 10 }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": "^(fable-opus-worker|fable-sonnet-helper|fable-peer-opus-worker|magnum-sonnet-worker|magnum-sonnet-reviewer|magnum-haiku-scout)$",
+        "hooks": [
+          { "type": "command", "command": "{{RUN}} \"{{HOOKS}}/guard.ps1\"", "timeout": 10 }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "^(fable-opus-worker|fable-sonnet-helper|fable-peer-opus-worker|magnum-sonnet-worker|magnum-sonnet-reviewer|magnum-haiku-scout)$",
+        "hooks": [
+          { "type": "command", "command": "{{RUN}} \"{{HOOKS}}/usage-guard.ps1\"", "timeout": 10 }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "{{RUN}} \"{{HOOKS}}/usage-guard.ps1\"", "timeout": 10 }
+        ]
+      }
+    ]
+  }
+}
